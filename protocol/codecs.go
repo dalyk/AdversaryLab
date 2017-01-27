@@ -34,17 +34,6 @@ func NamedTypeHandle() codec.Handle {
 	return h
 }
 
-func RawNamedTypeHandle() codec.Handle {
-	var h *codec.CborHandle = new(codec.CborHandle)
-
-	namedType := reflect.TypeOf(RawNamedType{})
-	var namedTypeExt NamedTypeExt
-
-	h.SetExt(namedType, 78, namedTypeExt)
-
-	return h
-}
-
 func (x NamedTypeExt) WriteExt(interface{}) []byte {
 	panic("unsupported")
 }

@@ -48,7 +48,3 @@ func (self Server) Accept(responder Responder) []byte {
 
 	return msg
 }
-
-func Ok(request []byte) []byte {
-	return []byte("success")
-}

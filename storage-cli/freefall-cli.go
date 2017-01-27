@@ -149,39 +149,6 @@ type Store struct {
 	last     int64
 }
 
-func OpenStore(path string) (*Store, error) {
-	os.Mkdir("store", 0777)
-
-	outindex, err := os.OpenFile("store/"+path+".index", os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0666)
-	if err != nil {
-		return nil, err
-	}
-
-	output, err := os.OpenFile("store/"+path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0666)
-	if err != nil {
-		return nil, err
-	}
-
-	reader, err := mmap.Open("store/" + path + ".index")
-	if err != nil {
-		return nil, err
-	}
-
-	file, err := os.Open("store/" + path)
-	if err != nil {
-		return nil, err
-	}
-
-	store := &Store{index: reader, content: file, outindex: outindex, output: output, last: -1}
-	err = store.Verify()
-
-	if err != nil {
-		return nil, err
-	} else {
-		return store, nil
-	}
-}
-
 func (self *Store) Verify() error {
 	var max int64 = int64(self.index.Len()) / (8 * 3)
 
