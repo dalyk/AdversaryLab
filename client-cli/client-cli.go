@@ -75,7 +75,7 @@ func capture(dataset string, allowBlock bool, port *string) {
 
 	captured := map[Connection]gopacket.Packet{}
 
-	handle, pcapErr := pcap.OpenLive("en0", 1024, false, 30*time.Second)
+	handle, pcapErr := pcap.OpenLive("em1", 1024, false, 30*time.Second)
 	if pcapErr != nil {
 		handle.Close()
 		os.Exit(1)
