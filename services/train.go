@@ -10,25 +10,25 @@ import (
 )
 
 type Handlers struct {
-	handlers   map[string]*StoreHandler
-	updates    chan Update
-	storeCache *storage.StoreCache
+	handlers   map[string]*StoreHandler		// keys are i.e. "dateset1-incoming"
+	updates    chan Update				// channel of best rule candidates
+	storeCache *storage.StoreCache			// map of all stores for received data (not sequences)
 }
 
 // StoreHandler is a request handler that knows about storage
 type StoreHandler struct {
-	path  string
-	store *storage.Store
+	path  string					// i.e. "dataset1-incoming"
+	store *storage.Store				// store for received data (not sequences)
 	//	seqs          *storage.SequenceMap
-	offseqs       *storage.OffsetSequenceMap
-	updates       chan Update
-	ruleUpdates   chan *storage.RuleCandidate
-	handleChannel chan *protocol.TrainPacket
+	offseqs       *storage.OffsetSequenceMap	// struct containing store with sequence files, ctrie, best rule, update channel
+	updates       chan Update			// channel of best rule updates ("dataset1-incoming' + best rule candidate)
+	ruleUpdates   chan *storage.RuleCandidate	// channel of best rule candidates
+	handleChannel chan *protocol.TrainPacket	// channel of decoded training packets; these get added to the store and processed
 }
 
 type TrainService struct {
 	handlers Handlers
-	serve    protocol.Server
+	serve    protocol.Server	// contains the socket for listening for training packets
 }
 
 type Update struct {
@@ -36,6 +36,8 @@ type Update struct {
 	Rule *storage.RuleCandidate
 }
 
+// The server side that receives training packets
+// Listen address is set up to be tcp://localhost:4567
 func NewTrainPacketService(listenAddress string, updates chan Update, storeCache *storage.StoreCache) *TrainService {
 	handlers := Handlers{handlers: make(map[string]*StoreHandler), updates: updates, storeCache: storeCache}
 	// files, err := ioutil.ReadDir("store")
@@ -47,12 +49,15 @@ func NewTrainPacketService(listenAddress string, updates chan Update, storeCache
 	// 	}
 	// }
 
+	// Sets up the socket for listening for training packets
 	serve := protocol.Listen(listenAddress)
 
 	return &TrainService{handlers: handlers, serve: serve}
 }
 
+// Goroutine spawned by the AdversaryLab/server.go that listens for and handles training packets.
 func (self *TrainService) Run() {
+	// Continuously accept training packets.
 	for {
 		//		fmt.Println("accepting reqresp")
 		self.serve.Accept(self.handlers.Handle)
@@ -60,6 +65,7 @@ func (self *TrainService) Run() {
 	}
 }
 
+// Return the corresponding store handler if it already exists, otherwise create one.
 func (self Handlers) Load(name string) *StoreHandler {
 	var err error
 
@@ -67,6 +73,8 @@ func (self Handlers) Load(name string) *StoreHandler {
 		return handler
 	} else {
 		store := self.storeCache.Get(name)
+		// If the desired store (i.e. dataset1-incoming) doesn't already exist,
+		// create a store for it and store it in the storeCache.
 		if store == nil {
 			store, err = storage.OpenStore(name)
 			if err != nil {
@@ -85,6 +93,7 @@ func (self Handlers) Load(name string) *StoreHandler {
 		// 	return nil
 		// }
 
+		// Channel for passing best rule candidate updates.
 		ruleUpdates := make(chan *storage.RuleCandidate, 10)
 
 		osm, err2 := storage.NewOffsetSequenceMap(name, ruleUpdates)
@@ -103,6 +112,8 @@ func (self Handlers) Load(name string) *StoreHandler {
 	}
 }
 
+// Handles a new training packet on the server side.  This function is called on packets that
+// are received and performs the necessary decoding.
 func (self Handlers) Handle(request []byte) []byte {
 	//	fmt.Println("New packet")
 	var name string
@@ -127,6 +138,8 @@ func (self Handlers) Handle(request []byte) []byte {
 			name = packet.Dataset + "-outgoing"
 		}
 
+		// Get the handler for packets of this dataset-incoming/outgoing and pass the training
+		// packet onto the handler's channel.
 		handler := self.Load(name)
 		if handler != nil {
 			handler.handleChannel <- &packet
@@ -154,6 +167,7 @@ func (self *StoreHandler) Init() {
 	//	self.store.FromIndexDo(self.store.LastIndex(), self.processChannel)
 }
 
+// Handle training packets received on the server that have been decoded.
 func (self *StoreHandler) HandleChannel(ch chan *protocol.TrainPacket) {
 	for request := range ch {
 		if !storage.Debug {
@@ -163,6 +177,7 @@ func (self *StoreHandler) HandleChannel(ch chan *protocol.TrainPacket) {
 	}
 }
 
+// Handle best rule candidate updates that result from processing the training packets.
 func (self *StoreHandler) HandleRuleUpdatesChannel(ch chan *storage.RuleCandidate) {
 	for rule := range ch {
 		update := Update{Path: self.path, Rule: rule}
@@ -171,10 +186,12 @@ func (self *StoreHandler) HandleRuleUpdatesChannel(ch chan *storage.RuleCandidat
 	}
 }
 
-// Handle handles requests
+// Handle handles requests (training packets sent from the client).  First adds the payout to the
+// store and then sends the record on to the processor.
 func (self *StoreHandler) Handle(request *protocol.TrainPacket) []byte {
+	// Add the payload (the byte array) to the store (both the source file and index file)
 	index := self.store.Add(request.Payload)
-	record, err := self.store.GetRecord(index)
+	record, err := self.store.GetRecord(index)	// checking that record was recorded correctly
 	if err != nil {
 		fmt.Println("Error getting new record", err)
 	} else {
@@ -184,10 +201,12 @@ func (self *StoreHandler) Handle(request *protocol.TrainPacket) []byte {
 	return []byte("success")
 }
 
-// Process processes records
+// Processes records (training data). Results in rules being put on update channle.
 func (self *StoreHandler) Process(allowBlock bool, record *storage.Record) {
 	//	fmt.Println("Processing", record.Index)
 
+	// For records that haven't been processed yet, they have just been added to the
+	// store, so record.Index should equal self.store.LastIndex().
 	if record.Index < self.store.LastIndex() {
 		fmt.Println("Rejecting duplicate", record.Index, "<", self.store.LastIndex())
 		return
@@ -198,6 +217,7 @@ func (self *StoreHandler) Process(allowBlock bool, record *storage.Record) {
 	self.processBytes(allowBlock, record.Data)
 }
 
+// Helper function for processing records (training data).
 func (self *StoreHandler) processBytes(allowBlock bool, bytes []byte) {
 	//	self.seqs.ProcessBytes(allowBlock, bytes)
 	self.offseqs.ProcessBytes(allowBlock, bytes)

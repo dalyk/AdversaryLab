@@ -10,11 +10,13 @@ import (
 	"github.com/go-mangos/mangos/transport/tcp"
 )
 
+// Client for receiving best rule updates
 type PubsubClient struct {
-	sock  mangos.Socket
-	Rules chan Rule
+	sock  mangos.Socket	// Client-side socket
+	Rules chan Rule		// Channel for decoded rules
 }
 
+// Connect to server on tcp://localhost:4568.
 func PubsubConnect(url string) PubsubClient {
 	var sock mangos.Socket
 	var err error
@@ -44,6 +46,7 @@ func PubsubConnect(url string) PubsubClient {
 	}
 }
 
+// Goroutine that reads and decodes rules from the socket.  Pushes them out onto the Rule channel.
 func pump(sock mangos.Socket, rules chan Rule) {
 	var err error
 	var msg []byte

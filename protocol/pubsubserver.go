@@ -13,6 +13,7 @@ type PubsubServer struct {
 	source PubsubSource
 }
 
+// Set up pub/sub server that will send out rule updates from the PubsubSource byte channel.
 func PubsubListen(url string, source PubsubSource) PubsubServer {
 	var sock mangos.Socket
 	var err error
@@ -32,6 +33,7 @@ func PubsubListen(url string, source PubsubSource) PubsubServer {
 	}
 }
 
+// Continuously reads from the PubsubSource and sends the data to the pub socket to send.
 func (self PubsubServer) Pump() {
 	for bs := range self.source {
 		//		fmt.Println("pumping")

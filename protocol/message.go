@@ -23,14 +23,15 @@ type RuleRequest struct {
 }
 
 type Rule struct {
-	Dataset       string
-	RequireForbid bool
-	Incoming      bool
-	Sequence      []byte
+	Dataset       string	// i.e. "dataset1"
+	RequireForbid bool	// true if rule should be used for allowing.
+	Incoming      bool	// whether or not this rule is for incoming or outgoing traffic.
+	Sequence      []byte	// offset (2 bytes) and rest of byte subsequence concatenated
 }
 
 type ResultStatus int
 
+// The structs are decoded as interfaces, so need to convert them back into structs.
 func TrainPacketFromMap(data map[interface{}]interface{}) TrainPacket {
 	packet := TrainPacket{}
 	packet.Dataset = data["Dataset"].(string)

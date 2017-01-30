@@ -7,6 +7,11 @@ import (
 	"github.com/ugorji/go/codec"
 )
 
+// InterfaceExt handles custom (de)serialization of types to/from another interface{} value.
+// The Encoder or Decoder will then handle the further (de)serialization of that known type.
+//
+// It is used by codecs (e.g. cbor, json) which use the format to do custom serialization of the types.
+
 type Named interface {
 	Name() string
 }
@@ -41,7 +46,8 @@ func (x NamedTypeExt) ReadExt(interface{}, []byte) {
 	panic("unsupported")
 }
 
-// From NamedWrapper to NamedType
+// ConvertExt converts a value into a simpler interface for easy encoding e.g. convert time.Time to int64.
+// From NamedType to RawNamedType
 func (x NamedTypeExt) ConvertExt(v interface{}) interface{} {
 	//  fmt.Println("Converting Ext")
 	switch v.(type) {
@@ -56,6 +62,7 @@ func (x NamedTypeExt) ConvertExt(v interface{}) interface{} {
 	}
 }
 
+// UpdateExt updates a value from a simpler interface for easy decoding e.g. convert int64 to time.Time.
 // From NamedType to NamedType
 func (x NamedTypeExt) UpdateExt(dest interface{}, v interface{}) {
 	//	fmt.Println("Updating Ext")

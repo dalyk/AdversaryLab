@@ -4,6 +4,8 @@ import (
 	"github.com/orcaman/concurrent-map"
 )
 
+// A concurrent map that has dataset names (i.e. dataset1-incoming) as keys and
+// pointers to Stores as values.
 type StoreCache struct {
 	cmap.ConcurrentMap
 }

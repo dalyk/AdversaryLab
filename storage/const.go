@@ -1,8 +1,8 @@
 package storage
 
 const int64Size = 8
-const cellsize = int64(int64Size * 2)
-const headerSize = cellsize * 2
+const cellsize = int64(int64Size * 2)	//16
+const headerSize = cellsize * 2		//32
 
 const indexHeaderOffset = 0
 const totalHeaderOffset = 1
