@@ -10,7 +10,6 @@ import (
 	"github.com/go-mangos/mangos"
 	"github.com/go-mangos/mangos/protocol/req"
 	"github.com/go-mangos/mangos/transport/tcp"
-	"io"
 )
 
 type Client struct {
@@ -121,6 +120,8 @@ func (self Client) request(data []byte) []byte {
 	var err error
 	var msg []byte
 
+	// Note that the length of data is not necessarily equal to the number of bytes in the packet
+	// payload since data is the encoded version of a struct containing the packet payload.
 	fmt.Printf("AdversaryLab client sending %d\n", len(data))
 	if err = self.sock.Send(data); err != nil {
 		die("can't send message on push socket: %s", err.Error())

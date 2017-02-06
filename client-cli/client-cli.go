@@ -16,7 +16,6 @@ import (
 	"github.com/google/gopacket/pcap"
 
 	"github.com/OperatorFoundation/AdversaryLab/protocol"
-	"io"
 )
 
 // This client command line interface supports both capturing packets and displaying the

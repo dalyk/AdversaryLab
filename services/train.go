@@ -5,30 +5,30 @@ import (
 
 	"github.com/ugorji/go/codec"
 
-	"github.com/OperatorFoundation/AdversaryLab/storage"
 	"github.com/OperatorFoundation/AdversaryLab/protocol"
+	"github.com/OperatorFoundation/AdversaryLab/storage"
 )
 
 type Handlers struct {
-	handlers   map[string]*StoreHandler		// keys are i.e. "dateset1-incoming"
-	updates    chan Update				// channel of best rule candidates
-	storeCache *storage.StoreCache			// map of all stores for received data (not sequences)
+	handlers   map[string]*StoreHandler // keys are i.e. "dateset1-incoming"
+	updates    chan Update              // channel of best rule candidates
+	storeCache *storage.StoreCache      // map of all stores for received data (not sequences)
 }
 
 // StoreHandler is a request handler that knows about storage
 type StoreHandler struct {
-	path  string					// i.e. "dataset1-incoming"
-	store *storage.Store				// store for received data (not sequences)
+	path  string         // i.e. "dataset1-incoming"
+	store *storage.Store // store for received data (not sequences)
 	//	seqs          *storage.SequenceMap
-	offseqs       *storage.OffsetSequenceMap	// struct containing store with sequence files, ctrie, best rule, update channel
-	updates       chan Update			// channel of best rule updates ("dataset1-incoming' + best rule candidate)
-	ruleUpdates   chan *storage.RuleCandidate	// channel of best rule candidates
-	handleChannel chan *protocol.TrainPacket	// channel of decoded training packets; these get added to the store and processed
+	offseqs       *storage.OffsetSequenceMap  // struct containing store with sequence files, ctrie, best rule, update channel
+	updates       chan Update                 // channel of best rule updates ("dataset1-incoming' + best rule candidate)
+	ruleUpdates   chan *storage.RuleCandidate // channel of best rule candidates
+	handleChannel chan *protocol.TrainPacket  // channel of decoded training packets; these get added to the store and processed
 }
 
 type TrainService struct {
 	handlers Handlers
-	serve    protocol.Server	// contains the socket for listening for training packets
+	serve    protocol.Server // contains the socket for listening for training packets
 }
 
 type Update struct {
@@ -191,7 +191,7 @@ func (self *StoreHandler) HandleRuleUpdatesChannel(ch chan *storage.RuleCandidat
 func (self *StoreHandler) Handle(request *protocol.TrainPacket) []byte {
 	// Add the payload (the byte array) to the store (both the source file and index file)
 	index := self.store.Add(request.Payload)
-	record, err := self.store.GetRecord(index)	// checking that record was recorded correctly
+	record, err := self.store.GetRecord(index) // checking that record was recorded correctly
 	if err != nil {
 		fmt.Println("Error getting new record", err)
 	} else {
@@ -201,7 +201,7 @@ func (self *StoreHandler) Handle(request *protocol.TrainPacket) []byte {
 	return []byte("success")
 }
 
-// Processes records (training data). Results in rules being put on update channle.
+// Processes records (training data). Results in rules being put on update channel.
 func (self *StoreHandler) Process(allowBlock bool, record *storage.Record) {
 	//	fmt.Println("Processing", record.Index)
 

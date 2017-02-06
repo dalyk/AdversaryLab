@@ -1,9 +1,5 @@
 package protocol
 
-import (
-	"github.com/ugorji/go/codec"
-)
-
 type TrainPacket struct {
 	Dataset    string
 	AllowBlock bool

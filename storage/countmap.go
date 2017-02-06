@@ -12,6 +12,11 @@ type Countmap struct {
 	Updates chan *RuleCandidate	// Channel for best rule candidate updates
 }
 
+// description of countmap file:
+// header is composed of: 16 unused bytes, 8 bytes for total # blocked sequences seen,
+// 8 bytes for total # of allowed sequences seen.
+// For each index, have block count followed by allow count.
+
 func NewCountmap(name string, updates chan *RuleCandidate) (*Countmap, error) {
 	// Creates a file like store/dataset1-incoming-offsets-sequence/countmap
 	bytemap, err := os.OpenFile("store/"+name+"/countmap", os.O_RDWR|os.O_CREATE, 0666)
